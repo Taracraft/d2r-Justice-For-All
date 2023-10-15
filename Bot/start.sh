@@ -1,0 +1,1 @@
+screen -dmS d2r-tracker python3 /home/discord/D2R-Bot/Bot/d2r-discord-bot.py
