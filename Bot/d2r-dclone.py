@@ -15,7 +15,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import asyncio
 # -*- coding: iso-8859-1 -*-
+import logging.handlers
 from datetime import datetime
 from os import environ, path
 from time import time
@@ -24,6 +26,21 @@ from discord.ext import tasks
 import discord
 import requests
 import json
+
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+logging.getLogger('discord.http').setLevel(logging.INFO)
+
+handler = logging.handlers.RotatingFileHandler(
+    filename='discord.log',
+    encoding='utf-8',
+    maxBytes=32 * 1024 * 1024,  # 32 MiB
+    backupCount=5,  # Rotate through 5 files
+)
+dt_fmt = '%Y-%m-%d %H:%M:%S'
+formatter = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', dt_fmt, style='{')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 #####################
 # Bot Configuration #
@@ -36,7 +53,7 @@ DCLONE_DISCORD_CHANNEL_ID = int('')
 
 # D2RuneWizard API (Optional but recommended)
 # This token is necessary for planned walk notifications
-DCLONE_D2RW_TOKEN = environ.get('DCLONE_D2RW_TOKEN')
+DCLONE_D2RW_TOKEN = str('')
 
 # DClone tracker API (Optional)
 # Defaults to All Regions, Ladder and Non-Ladder, Softcore
@@ -46,21 +63,10 @@ DCLONE_HC = environ.get('DCLONE_HC', '')  # 1 for Hardcore, 2 for Softcore, blan
 
 # Bot specific (Optional)
 # Defaults to alerting at level 3 if the last 3 progress reports match
-DCLONE_THRESHOLD = int(environ.get('DCLONE_THRESHOLD', 3))  # progress level to alert at (and above)
+DCLONE_THRESHOLD = int(environ.get('DCLONE_THRESHOLD', 1))  # progress level to alert at (and above)
 DCLONE_REPORTS = int(
-    environ.get('DCLONE_REPORTS', 3))  # number of matching reports required before alerting (reduces trolling)
+    environ.get('DCLONE_REPORTS', 1))  # number of matching reports required before alerting (reduces trolling)
 
-"""api_url = "https://d2runewizard.com/api/diablo-clone-progress/all"
-todo = {"server": 1}
-response = requests.get(api_url)
-headers =  {"Content-Type":"application/json"}
-response = requests.post(api_url, data=json.dumps(todo), headers=headers)
-response.json()
-jsonResponse = response.json()
-print("Entire JSON response")
-print(jsonResponse)
-response.status_code
-"""
 ########################
 # End of configuration #
 ########################
@@ -386,6 +392,16 @@ class DiscordClient(discord.Client):
         """
         Runs when the bot is connected to Discord and ready to receive messages. This starts our background task.
         """
+        amount = 100
+        # delete
+        arr = [client.get_channel(DCLONE_DISCORD_CHANNEL_ID)]
+
+        for channel in arr:
+            print('Clearing messages...')
+            await channel.purge(limit=amount)
+            await asyncio.sleep(6)
+        else:
+            print(channel, 'Keine Eintraege gefunden')
         # pylint: disable=no-member
         print(f'Bot logged into Discord as "{self.user}"')
         servers = sorted([g.name for g in self.guilds])
@@ -405,6 +421,8 @@ class DiscordClient(discord.Client):
         except RuntimeError as err:
             print(f'Background Task Error: {err}')
 
+        current_status = self.dclone.progress_message()
+        await channel.send(current_status)
     async def on_message(self, message):
         """
         This is called any time the bot receives a message. It implements the dclone chatop.
@@ -584,3 +602,4 @@ class DiscordClient(discord.Client):
 if __name__ == '__main__':
     client = DiscordClient(intents=discord.Intents.default())
     client.run(DCLONE_DISCORD_TOKEN)
+
