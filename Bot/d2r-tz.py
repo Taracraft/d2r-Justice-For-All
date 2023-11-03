@@ -1,6 +1,3 @@
-"""
-by Taracraft (Lucky)
-"""
 # -*- coding: iso-8859-1 -*-
 import logging.handlers
 from datetime import datetime
@@ -9,7 +6,6 @@ from os import environ, path
 from discord.ext import tasks
 from requests import get
 import discord
-
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -25,7 +21,6 @@ dt_fmt = '%Y-%m-%d %H:%M:%S'
 formatter = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', dt_fmt, style='{')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-
 
 #####################
 # Bot Configuration #
@@ -67,8 +62,10 @@ else:
 headers = {
     "D2R-Contact": efr.replace('\n', ''),
     "D2R-Platform": "Discord",
-    "D2R-Repo": "https://github.com/Taracraft/d2r-Justice-For-All"
+    "D2R-Repo": "https://github.com/shallox/d2r-discord-bot"
 }
+
+
 class D2RuneWizardClient():
     @staticmethod
     def terror_zone():
@@ -97,10 +94,11 @@ class D2RuneWizardClient():
                 f'Positive reports: {terror_info["highestProbabilityZone"]["amount"]}\n' \
                 f'Probability zone is correct: {terror_info["highestProbabilityZone"]["probability"]}\n' \
                 f'Disputed terror zone: {alt_tz}\n' \
-                f':sadcatth: Data courtesy of d2runewizard.com\n' \
+                f'Data courtesy of d2runewizard.com\n' \
                 f':skull_crossbones::skull_crossbones::skull_crossbones::skull_crossbones::skull_crossbones::skull_crossbones::skull_crossbones::skull_crossbones::skull_crossbones::skull_crossbones:'
-        print (reply)
+        print(reply)
         return reply
+
 
 class DiscordClient(discord.Client):
 
@@ -138,6 +136,11 @@ class DiscordClient(discord.Client):
             return
         print(f'Messages will be sent to #{channel.name} on the {channel.guild.name} server')
 
+        try:
+            self.check_tz_status.start()
+        except RuntimeError as err:
+            print(f'Background Task Error: {err}')
+
     async def on_message(self, message):
         """
         This is called any time the bot receives a message. It implements the dclone chatop.
@@ -149,8 +152,10 @@ class DiscordClient(discord.Client):
         if message.content.startswith('!tz'):
             print(f'Providing Terror Zone info to {message.author}')
             await channel.send(D2RuneWizardClient.terror_zone())
+            await channel.send(f'{D2RuneWizardClient.terror_zone()}')
         elif message.content.startswith('!help'):
-            await channel.send(f'Commands are:\n!tz | Displays the latest Terror Zone info.\n!help | ...Provides a clue -.0')
+            await channel.send(
+                f'Commands are:\n!tz | Displays the latest Terror Zone info.\n!help | ...Provides a clue -.0')
 
     @tasks.loop(seconds=60)
     async def check_tz_status(self):
