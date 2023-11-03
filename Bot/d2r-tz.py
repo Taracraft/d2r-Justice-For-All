@@ -62,7 +62,7 @@ else:
 headers = {
     "D2R-Contact": efr.replace('\n', ''),
     "D2R-Platform": "Discord",
-    "D2R-Repo": "https://github.com/shallox/d2r-discord-bot"
+    "D2R-Repo": "https://github.com/Taracraft/d2r-Justice-For-Al"
 }
 
 
